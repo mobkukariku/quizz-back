@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String         @id @default(cuid())
+  firstName   String
+  lastName    String
+  email       String         @unique
+  password    String
+  courses     Course[]
+  reviews     UserReview[]
+  progress    UserProgress[]
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model Course {
+  id          String         @id @default(cuid())
+  title       String
+  description String
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+  reviews     UserReview[]
+  progress    UserProgress[]
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([userId])
+}
+
+model Lesson {
+  id          String         @id @default(cuid())
+  title       String
+  content     String
+  courseId    String
+  course      Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  quizzes     Quiz[]
+  progress    UserProgress[]
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([courseId])
+}
+
+model Quiz {
+  id          String         @id @default(cuid())
+  title       String
+  lessonId    String
+  lesson      Lesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  questions   Question[]
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([lessonId])
+}
+
+model Question {
+  id          String         @id @default(cuid())
+  title       String
+  content     String
+  quizId      String
+  quiz        Quiz           @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  answers     AnswerVariants[]
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([quizId])
+}
+
+model AnswerVariants {
+  id          String         @id @default(cuid())
+  content     String
+  correct     Boolean
+  questionId  String
+  question    Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([questionId])
+}
+
+// Модель для отзывов пользователей о курсах
+model UserReview {
+  id          String         @id @default(cuid())
+  userId      String
+  courseId    String
+  review      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course      Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([userId, courseId])
+}
+
+// Модель для отслеживания прогресса пользователя по курсу и уроку
+model UserProgress {
+  id          String         @id @default(cuid())
+  userId      String
+  courseId    String?
+  lessonId    String?
+  progress    Float          @default(0.0)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course      Course?        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lesson      Lesson?        @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([userId, courseId, lessonId])
+}
+
+// Enum для ролей пользователей
+enum Role {
+  ADMIN
+  USER
+  GUEST
+}
